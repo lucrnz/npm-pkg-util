@@ -33,14 +33,14 @@ program
 
 program
   .command('add')
-  .description('Add a specific package to package-lock.json')
-  .argument('<package>', 'Package to add (format: package@version)')
+  .description('Add specific packages to package-lock.json')
+  .argument('<packages...>', 'Packages to add (format: package@version)')
   .option(
     '-d, --dry',
     'Run in dry mode, only update temporary files without replacing package-lock.json',
     false,
   )
-  .action(async (packageArg, options) => {
+  .action(async (packageArgs, options) => {
     try {
       // Check npm version
       const npmVersion = await checkNpmVersion();
@@ -70,38 +70,6 @@ program
         process.exit(1);
       }
 
-      // Parse package argument (name@version)
-
-      /** @type {string|undefined} */
-      let packageName;
-
-      /** @type {string|undefined} */
-      let packageVersion;
-
-      if (packageArg.startsWith('@')) {
-        // Handle namespaced packages (@namespace/pkg@version)
-        const lastAtIndex = packageArg.lastIndexOf('@');
-        if (lastAtIndex > 0) {
-          packageName = packageArg.substring(0, lastAtIndex);
-          packageVersion = packageArg.substring(lastAtIndex + 1);
-        } else {
-          packageName = packageArg;
-          packageVersion = '';
-        }
-      } else {
-        // Handle regular packages (pkg@version)
-        [packageName, packageVersion] = packageArg.split('@');
-      }
-
-      if (!packageName) {
-        console.error(
-          chalk.red(
-            'Error: Invalid package format. Use package@version or @namespace/package@version',
-          ),
-        );
-        process.exit(1);
-      }
-
       // Create temporary directory
       const tempDir = path.join(cwd, '.pkg-util-temp');
       try {
@@ -120,86 +88,138 @@ program
           path.join(tempDir, 'package-lock.json'),
         );
 
-        console.log(
-          chalk.blue(
-            `Adding ${packageName}${packageVersion ? `@${packageVersion}` : ''} to package-lock.json...`,
-          ),
-        );
+        // Handle .npmrc file if it exists
+        const npmrcPath = path.join(cwd, '.npmrc');
+        if (fsSync.existsSync(npmrcPath)) {
+          try {
+            // Read the contents of .npmrc (handles symlinks)
+            const npmrcContents = await fs.readFile(npmrcPath, 'utf8');
+            // Write the contents to the temp directory
+            await fs.writeFile(path.join(tempDir, '.npmrc'), npmrcContents);
+          } catch (error) {
+            console.error(
+              chalk.yellow(
+                `Warning: Failed to copy .npmrc file: ${error.message}`,
+              ),
+            );
+          }
+        }
 
-        // Run npm install for the specified package
-        const versionString = packageVersion ? `@${packageVersion}` : '';
-        const packageString = `${packageName}${versionString}`;
-
-        // Use npm programmatically to install the package
-        await new Promise((resolve, reject) => {
-          const npmProcess = spawn(
-            'npm',
-            ['install', packageString, '--package-lock-only'],
-            {
-              cwd: tempDir,
-              stdio: 'inherit',
-            },
-          );
-
-          npmProcess.on('close', (code) => {
-            if (code === 0) {
-              resolve();
-            } else {
-              reject(new Error(`npm install failed with code ${code}`));
-            }
-          });
-        });
-
-        // Read the updated package-lock.json
-        const updatedPackageLock = JSON.parse(
-          await fs.readFile(path.join(tempDir, 'package-lock.json'), 'utf8'),
-        );
-        const originalPackageLock = JSON.parse(
+        let currentPackageLock = JSON.parse(
           await fs.readFile(packageLockPath, 'utf8'),
         );
 
-        // Get the dependency information for the specified package
-        const packageInfo = getPackageInfoFromLock(
-          updatedPackageLock,
-          packageName,
-        );
+        // Process each package sequentially
+        for (const packageArg of packageArgs) {
+          // Parse package argument (name@version)
+          /** @type {string|undefined} */
+          let packageName;
 
-        if (!packageInfo) {
-          console.error(
-            chalk.red(
-              `Error: Could not find ${packageName} in the updated package-lock.json`,
+          /** @type {string|undefined} */
+          let packageVersion;
+
+          if (packageArg.startsWith('@')) {
+            // Handle namespaced packages (@namespace/pkg@version)
+            const lastAtIndex = packageArg.lastIndexOf('@');
+            if (lastAtIndex > 0) {
+              packageName = packageArg.substring(0, lastAtIndex);
+              packageVersion = packageArg.substring(lastAtIndex + 1);
+            } else {
+              packageName = packageArg;
+              packageVersion = '';
+            }
+          } else {
+            // Handle regular packages (pkg@version)
+            [packageName, packageVersion] = packageArg.split('@');
+          }
+
+          if (!packageName) {
+            console.error(
+              chalk.red(
+                `Error: Invalid package format for "${packageArg}". Use package@version or @namespace/package@version`,
+              ),
+            );
+            process.exit(1);
+          }
+
+          console.log(
+            chalk.blue(
+              `Adding ${packageName}${packageVersion ? `@${packageVersion}` : ''} to package-lock.json...`,
             ),
           );
-          process.exit(1);
-        }
 
-        // Merge the package information into the original package-lock.json
-        const mergedPackageLock = mergePackageIntoLock(
-          originalPackageLock,
-          packageName,
-          packageInfo,
-          updatedPackageLock,
-        );
+          // Run npm install for the specified package
+          const versionString = packageVersion ? `@${packageVersion}` : '';
+          const packageString = `${packageName}${versionString}`;
+
+          // Use npm programmatically to install the package
+          await new Promise((resolve, reject) => {
+            const npmProcess = spawn(
+              'npm',
+              ['install', packageString, '--package-lock-only'],
+              {
+                cwd: tempDir,
+                stdio: 'inherit',
+              },
+            );
+
+            npmProcess.on('close', (code) => {
+              if (code === 0) {
+                resolve();
+              } else {
+                reject(new Error(`npm install failed with code ${code}`));
+              }
+            });
+          });
+
+          // Read the updated package-lock.json
+          const updatedPackageLock = JSON.parse(
+            await fs.readFile(path.join(tempDir, 'package-lock.json'), 'utf8'),
+          );
+
+          // Get the dependency information for the specified package
+          const packageInfo = getPackageInfoFromLock(
+            updatedPackageLock,
+            packageName,
+          );
+
+          if (!packageInfo) {
+            console.error(
+              chalk.red(
+                `Error: Could not find ${packageName} in the updated package-lock.json`,
+              ),
+            );
+            process.exit(1);
+          }
+
+          // Merge the package information into the current package-lock.json
+          currentPackageLock = mergePackageIntoLock(
+            currentPackageLock,
+            packageName,
+            packageInfo,
+            updatedPackageLock,
+          );
+
+          // Write back the intermediate result to the temp directory
+          await fs.writeFile(
+            path.join(tempDir, 'package-lock.json'),
+            JSON.stringify(currentPackageLock, null, 2),
+          );
+        }
 
         if (options.dry) {
           console.log(
             chalk.yellow('Dry run mode. Not updating package-lock.json'),
           );
-          console.log(
-            chalk.green(
-              `Successfully resolved ${packageName}${packageVersion ? `@${packageVersion}` : ''}`,
-            ),
-          );
+          console.log(chalk.green('Successfully resolved all packages'));
         } else {
-          // Write the merged package-lock.json back to the original location
+          // Write the final merged package-lock.json back to the original location
           await fs.writeFile(
             packageLockPath,
-            JSON.stringify(mergedPackageLock, null, 2),
+            JSON.stringify(currentPackageLock, null, 2),
           );
           console.log(
-            chalk.green(
-              `Successfully added ${packageName}${packageVersion ? `@${packageVersion}` : ''} to package-lock.json`,
-            ),
+            chalk.green('Successfully added all packages to package-lock.json'),
           );
         }
       } finally {

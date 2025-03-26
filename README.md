@@ -38,7 +38,10 @@ npm link
 npm-pkg-util add package-name@version
 
 # Example: Add auth package version 3.0.3
-npm-pkg-util add auth@3.0.3
+npm-pkg-util add auth0@3.0.3
+
+# You can also specify multiple packages in one call
+npm-pkg-util add auth0@latest form-data@3.0.3 @smity/util-buffer-from@2.2.0
 
 # Dry run (doesn't update the actual package-lock.json)
 npm-pkg-util add auth@3.0.3 --dry
@@ -47,7 +50,7 @@ npm-pkg-util add auth@3.0.3 --dry
 ## How It Works
 
 1. Creates a temporary directory
-2. Copies your current package.json and package-lock.json to the temp directory
+2. Copies your current package.json and package-lock.json to the temp directory.  (it also makes sure to copy `.npmrc` contents)
 3. Runs `npm install package-name@version --package-lock-only` in the temp directory
 4. Extracts just the relevant information for the specified package from the updated package-lock.json
 5. Merges this information into your original package-lock.json
