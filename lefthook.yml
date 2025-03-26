@@ -1,0 +1,12 @@
+# https://lefthook.dev/configuration/
+pre-commit:
+  commands:
+    check:
+      glob: "*.mjs"
+      run: npm exec biome check --write {staged_files}
+      stage_fixed: true
+
+pre-push:
+  commands:
+    audit:
+      run: npm audit

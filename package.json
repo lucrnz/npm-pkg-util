@@ -1,0 +1,31 @@
+{
+  "name": "npm-pkg-util",
+  "version": "1.0.0",
+  "author": "Luciano Hillcoat <me@lucdev.net>",
+  "description": "CLI tool to update package-lock.json with specific missing entries",
+  "main": "pkg-util.mjs",
+  "type": "module",
+  "bin": {
+    "pkg-util": "./pkg-util.mjs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "test -d .git && lefthook install || true"
+  },
+  "keywords": [
+    "npm",
+    "package-lock",
+    "dependencies",
+    "cli"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "npm": "^11.2.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "lefthook": "^1.11.5"
+  }
+}
