@@ -1,14 +1,16 @@
 # npm-pkg-util
 
-A CLI tool to update package-lock.json files by adding specific missing entries without regenerating the entire lock file. **Works with npm v7+ only.**
+A CLI tool to update package-lock.json files by adding specific missing entries without regenerating the entire lock file.
 
 ## Problem Solved
 
-This tool addresses the common issue where CI pipelines fail because certain packages are missing from the package-lock.json file, but you don't want to regenerate the entire lock file using `npm i` (which might update many other dependencies).
+This tool addresses the common issue where CI pipelines fail because certain packages are missing from the `package-lock.json` file, but you don't want to regenerate the entire lock file using `npm i` (which might update many other dependencies).
 
 ## Disclaimer
 
-This application is currently in testing and was developed to solve the tool author's specific problems. It may fail and **SHOULD NOT BE USED IN PRODUCTION WITHOUT DOUBLE-CHECKING EVERYTHING IS WORKING**.
+This application is currently in testing and was developed to solve the tool author's specific problems.
+
+It may fail and **SHOULD NOT BE USED IN PRODUCTION WITHOUT DOUBLE-CHECKING EVERYTHING IS WORKING**.
 
 The author does not prioritize issue reports; instead, please send pull requests, and they might be reviewed.
 
