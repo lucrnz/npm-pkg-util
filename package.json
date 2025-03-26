@@ -1,12 +1,12 @@
 {
   "name": "npm-pkg-util",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Luciano Hillcoat <me@lucdev.net>",
   "description": "CLI tool to update package-lock.json with specific missing entries",
-  "main": "pkg-util.mjs",
+  "main": "main.mjs",
   "type": "module",
   "bin": {
-    "pkg-util": "./pkg-util.mjs"
+    "npm-pkg-util": "./main.mjs"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

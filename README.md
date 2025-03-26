@@ -35,13 +35,13 @@ npm link
 
 ```bash
 # Add a specific package to package-lock.json
-pkg-util add package-name@version
+npm-pkg-util add package-name@version
 
 # Example: Add auth package version 3.0.3
-pkg-util add auth@3.0.3
+npm-pkg-util add auth@3.0.3
 
 # Dry run (doesn't update the actual package-lock.json)
-pkg-util add auth@3.0.3 --dry
+npm-pkg-util add auth@3.0.3 --dry
 ```
 
 ## How It Works

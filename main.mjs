@@ -27,7 +27,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const program = new Command();
 
 program
-  .name('pkg-util')
+  .name('npm-pkg-util')
   .description('CLI to update package-lock.json with specific missing entries')
   .version('1.0.0');
 
@@ -71,10 +71,33 @@ program
       }
 
       // Parse package argument (name@version)
-      const [packageName, packageVersion] = packageArg.split('@');
+
+      /** @type {string|undefined} */
+      let packageName;
+
+      /** @type {string|undefined} */
+      let packageVersion;
+
+      if (packageArg.startsWith('@')) {
+        // Handle namespaced packages (@namespace/pkg@version)
+        const lastAtIndex = packageArg.lastIndexOf('@');
+        if (lastAtIndex > 0) {
+          packageName = packageArg.substring(0, lastAtIndex);
+          packageVersion = packageArg.substring(lastAtIndex + 1);
+        } else {
+          packageName = packageArg;
+          packageVersion = '';
+        }
+      } else {
+        // Handle regular packages (pkg@version)
+        [packageName, packageVersion] = packageArg.split('@');
+      }
+
       if (!packageName) {
         console.error(
-          chalk.red('Error: Invalid package format. Use package@version'),
+          chalk.red(
+            'Error: Invalid package format. Use package@version or @namespace/package@version',
+          ),
         );
         process.exit(1);
       }
