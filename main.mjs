@@ -80,6 +80,9 @@ program
         }
       }
 
+      // Create .gitignore file to ensure the temp directory is ignored by version control
+      await fs.writeFile(path.join(tempDir, '.gitignore'), '*\n');
+
       try {
         // Copy package.json and package-lock.json to temp directory
         await fs.copyFile(packageJsonPath, path.join(tempDir, 'package.json'));
