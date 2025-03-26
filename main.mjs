@@ -267,18 +267,33 @@ function mergePackageIntoLock(
   // Create a deep copy of the original package-lock.json
   const result = JSON.parse(JSON.stringify(originalLock));
 
-  // Set package info
-  if (packageInfo.pkgPath) {
-    result.packages[packageInfo.pkgPath] = packageInfo.pkgInfo;
+  // Ensure we have the packages object
+  if (!result.packages) {
+    result.packages = {};
   }
 
-  // Also copy any nested dependencies that might have been added
+  // Copy all new or updated packages from the updated lock
   for (const [pkgPath, pkgInfo] of Object.entries(updatedLock.packages)) {
+    // Copy if:
+    // 1. It's the root package
+    // 2. It's the target package
+    // 3. It's a dependency of the target package
+    // 4. It's a new package that didn't exist before
     if (
-      pkgPath.startsWith(`node_modules/${packageName}/`) &&
-      !result.packages[pkgPath]
+      pkgPath === '' || // root package
+      pkgPath === `node_modules/${packageName}` || // target package
+      pkgPath.startsWith(`node_modules/${packageName}/`) || // direct dependency
+      !result.packages[pkgPath] // new package
     ) {
       result.packages[pkgPath] = pkgInfo;
+    }
+  }
+
+  // Copy other important fields from the updated lock if they exist
+  const fieldsToMerge = ['dependencies', 'lockfileVersion'];
+  for (const field of fieldsToMerge) {
+    if (updatedLock[field] && !result[field]) {
+      result[field] = updatedLock[field];
     }
   }
 
